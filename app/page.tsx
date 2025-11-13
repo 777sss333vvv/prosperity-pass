@@ -1,206 +1,126 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Web3 from "web3";
 
 export default function HomePage() {
   const [account, setAccount] = useState<string | null>(null);
-  const [web3, setWeb3] = useState<Web3 | null>(null);
-  const [network, setNetwork] = useState<string>("Not connected");
+  const [network, setNetwork] = useState<string | null>(null);
 
-  // Инициализация Web3
-  useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).ethereum) {
-      const w3 = new Web3((window as any).ethereum);
-      setWeb3(w3);
-      updateNetwork();
-    }
-  }, []);
-
-  const updateNetwork = async () => {
-    if (!(window as any).ethereum) return;
-
-    try {
-      const chainId = await (window as any).ethereum.request({ method: "eth_chainId" });
-
-      let networkName = "Unknown network";
-
-      if (chainId === "0xa4ec") networkName = "Celo Mainnet";
-      else if (chainId === "0xaef3") networkName = "Celo Alfajores Testnet";
-      else if (chainId === "0x2a4a") networkName = "Celo Baklava Testnet";
-
-      setNetwork(networkName);
-    } catch (err) {
-      console.error("Error fetching network:", err);
-    }
-  };
-
+  // Подключение кошелька
   const connectWallet = async () => {
-    if (!web3) {
-      alert("MetaMask not detected. Please install MetaMask.");
+    if (typeof window === "undefined" || !(window as any).ethereum) {
+      alert("Please install MetaMask!");
       return;
     }
 
     try {
-      const accounts = await (window as any).ethereum.request({
-        method: "eth_requestAccounts",
-      });
+      const web3 = new Web3((window as any).ethereum);
+      await (window as any).ethereum.request({ method: "eth_requestAccounts" });
+      const accounts = await web3.eth.getAccounts();
+      const chainId = await web3.eth.getChainId();
+
       setAccount(accounts[0]);
-      await updateNetwork();
-      alert(`Wallet connected: ${accounts[0]}`);
-    } catch (err) {
-      console.error(err);
-      alert("Connection failed.");
+      setNetwork(chainId.toString());
+      alert("✅ Wallet connected successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("❌ Failed to connect wallet.");
     }
   };
 
-  const sendCelo = async (amount: number) => {
-    if (!web3 || !account) {
-      alert("Please connect your wallet first.");
+  // Отправка доната
+  const sendDonation = async (amount: number) => {
+    if (typeof window === "undefined" || !(window as any).ethereum) {
+      alert("Please install MetaMask!");
       return;
     }
 
     try {
-      const chainId = await (window as any).ethereum.request({ method: "eth_chainId" });
+      const web3 = new Web3((window as any).ethereum);
+      const accounts = await web3.eth.getAccounts();
+      const account = accounts[0];
+      const recipient = "0x31DB887337778319761330f79E4699a3f9A5F6c3";
 
-      if (chainId !== "0xa4ec") {
-        alert("Please switch to Celo Mainnet in MetaMask.");
-        return;
-      }
+      // Правильное вычисление CELO в wei
+      const value = BigInt(amount * 10 ** 18).toString();
 
-      const valueInWei = Web3.utils.toWei(amount.toString(), "ether");
-
-      const tx = {
+      await web3.eth.sendTransaction({
         from: account,
-        to: "0x31DB887337778319761330f79E4699a3f9A5F6c3",
-        value: valueInWei,
-        gas: "21000",
-      };
-
-      await (window as any).ethereum.request({
-        method: "eth_sendTransaction",
-        params: [tx],
+        to: recipient,
+        value: value,
       });
 
-      alert(`✅ Transaction successful! Thank you for donating ${amount} CELO 🌟`);
-    } catch (err) {
-      console.error(err);
-      alert("Transaction failed.");
+      alert(`🎉 Thank you! You sent ${amount} CELO`);
+    } catch (error) {
+      console.error(error);
+      alert("❌ Transaction failed.");
     }
   };
 
   return (
-    <div
-      style={{
-        backgroundColor: "#000",
-        color: "#FFD700",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "Arial, sans-serif",
-        padding: "20px",
-        textAlign: "center",
-      }}
-    >
-      {/* Верхний блок */}
-      <div style={{ marginBottom: "40px", maxWidth: "600px" }}>
-        <h2>
-          This app is dedicated to support and updates related to Prosperity Pass ✨
-        </h2>
-        <p>
-          A Celo ecosystem account supported by{" "}
-          <strong>CeloPG</strong> to recognize and reward contributions to Celo.
+    <main className="min-h-screen bg-gradient-to-b from-yellow-100 to-yellow-300 text-gray-900 flex flex-col items-center justify-center p-6">
+      <div className="bg-black/80 text-yellow-300 p-6 rounded-2xl shadow-2xl max-w-md w-full text-center">
+        <h1 className="text-2xl font-bold mb-4">
+          🌍 Prosperity Pass — Celo Mini App
+        </h1>
+
+        <p className="text-sm mb-6 text-yellow-200">
+          This app is dedicated to support and updates related to Prosperity
+          Pass, a Celo ecosystem account supported by CeloPG to recognize and
+          reward contributions to Celo ✨
           <br />
           <a
             href="https://pass.celopg.eco/welcome"
             target="_blank"
             rel="noopener noreferrer"
-            style={{
-              color: "#FFD700",
-              textDecoration: "underline",
-              fontWeight: "bold",
-            }}
+            className="underline hover:text-yellow-400 transition"
           >
             https://pass.celopg.eco/welcome
           </a>
         </p>
-      </div>
 
-      {/* Сеть */}
-      <div
-        style={{
-          marginBottom: "20px",
-          backgroundColor: "#1a1a1a",
-          padding: "10px 20px",
-          borderRadius: "10px",
-          fontSize: "16px",
-          color: "#FFD700",
-          border: "1px solid #FFD700",
-        }}
-      >
-        Network: {network}
-      </div>
-
-      {/* Кошелёк */}
-      {!account ? (
-        <button
-          onClick={connectWallet}
-          style={{
-            backgroundColor: "#FFD700",
-            color: "#000",
-            padding: "10px 25px",
-            border: "none",
-            borderRadius: "10px",
-            cursor: "pointer",
-            fontSize: "18px",
-            fontWeight: "bold",
-            transition: "0.3s",
-          }}
-          onMouseOver={(e) =>
-            ((e.target as HTMLButtonElement).style.backgroundColor = "#ffcc00")
-          }
-          onMouseOut={(e) =>
-            ((e.target as HTMLButtonElement).style.backgroundColor = "#FFD700")
-          }
-        >
-          Connect Wallet
-        </button>
-      ) : (
-        <p style={{ color: "#fff", fontSize: "16px" }}>
-          Connected: {account.slice(0, 6)}...{account.slice(-4)}
-        </p>
-      )}
-
-      {/* Кнопки донатов */}
-      <div style={{ marginTop: "40px", display: "flex", gap: "15px" }}>
-        {[0.1, 1, 5].map((amount) => (
+        {!account ? (
           <button
-            key={amount}
-            onClick={() => sendCelo(amount)}
-            style={{
-              backgroundColor: "#FFD700",
-              color: "#000",
-              padding: "12px 20px",
-              border: "none",
-              borderRadius: "10px",
-              cursor: "pointer",
-              fontSize: "16px",
-              fontWeight: "bold",
-              transition: "0.3s",
-            }}
-            onMouseOver={(e) =>
-              ((e.target as HTMLButtonElement).style.backgroundColor = "#ffcc00")
-            }
-            onMouseOut={(e) =>
-              ((e.target as HTMLButtonElement).style.backgroundColor = "#FFD700")
-            }
+            onClick={connectWallet}
+            className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition"
           >
-            Donate {amount} CELO
+            🔗 Connect Wallet
           </button>
-        ))}
+        ) : (
+          <div>
+            <p className="text-xs text-yellow-200 mb-4 break-all">
+              Connected: {account}
+            </p>
+            <p className="text-xs mb-4">Network ID: {network}</p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => sendDonation(0.1)}
+                className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded-xl transition"
+              >
+                💛 Donate 0.1 CELO
+              </button>
+              <button
+                onClick={() => sendDonation(1)}
+                className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded-xl transition"
+              >
+                💛 Donate 1 CELO
+              </button>
+              <button
+                onClick={() => sendDonation(5)}
+                className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded-xl transition"
+              >
+                💛 Donate 5 CELO
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+
+      <footer className="text-xs text-gray-800 mt-8">
+        Built with 💛 on Celo • Powered by Next.js
+      </footer>
+    </main>
   );
 }
