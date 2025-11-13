@@ -43,7 +43,8 @@ export default function HomePage() {
       const tx = {
         from: account,
         to: "0x31DB887337778319761330f79E4699a3f9A5F6c3", 
-        value: web3.utils.toWei(amount.toString(), "ether"),
+        value: web3.utils.toWei(amount.toFixed(2).toString(), "ether"),
+
       };
 
       await (window as any).ethereum.request({
