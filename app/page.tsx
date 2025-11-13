@@ -6,14 +6,34 @@ import Web3 from "web3";
 export default function HomePage() {
   const [account, setAccount] = useState<string | null>(null);
   const [web3, setWeb3] = useState<Web3 | null>(null);
+  const [network, setNetwork] = useState<string>("Not connected");
 
   // Инициализация Web3
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).ethereum) {
       const w3 = new Web3((window as any).ethereum);
       setWeb3(w3);
+      updateNetwork();
     }
   }, []);
+
+  const updateNetwork = async () => {
+    if (!(window as any).ethereum) return;
+
+    try {
+      const chainId = await (window as any).ethereum.request({ method: "eth_chainId" });
+
+      let networkName = "Unknown network";
+
+      if (chainId === "0xa4ec") networkName = "Celo Mainnet";
+      else if (chainId === "0xaef3") networkName = "Celo Alfajores Testnet";
+      else if (chainId === "0x2a4a") networkName = "Celo Baklava Testnet";
+
+      setNetwork(networkName);
+    } catch (err) {
+      console.error("Error fetching network:", err);
+    }
+  };
 
   const connectWallet = async () => {
     if (!web3) {
@@ -26,6 +46,7 @@ export default function HomePage() {
         method: "eth_requestAccounts",
       });
       setAccount(accounts[0]);
+      await updateNetwork();
       alert(`Wallet connected: ${accounts[0]}`);
     } catch (err) {
       console.error(err);
@@ -40,11 +61,20 @@ export default function HomePage() {
     }
 
     try {
+      const chainId = await (window as any).ethereum.request({ method: "eth_chainId" });
+
+      if (chainId !== "0xa4ec") {
+        alert("Please switch to Celo Mainnet in MetaMask.");
+        return;
+      }
+
+      const valueInWei = Web3.utils.toWei(amount.toString(), "ether");
+
       const tx = {
         from: account,
-        to: "0x31DB887337778319761330f79E4699a3f9A5F6c3", 
-        value: web3.utils.toWei(amount.toFixed(2).toString(), "ether"),
-
+        to: "0x31DB887337778319761330f79E4699a3f9A5F6c3",
+        value: valueInWei,
+        gas: "21000",
       };
 
       await (window as any).ethereum.request({
@@ -52,7 +82,7 @@ export default function HomePage() {
         params: [tx],
       });
 
-      alert(`Thank you for your ${amount} CELO contribution! 🌟`);
+      alert(`✅ Transaction successful! Thank you for donating ${amount} CELO 🌟`);
     } catch (err) {
       console.error(err);
       alert("Transaction failed.");
@@ -74,12 +104,14 @@ export default function HomePage() {
         textAlign: "center",
       }}
     >
-      {/* Верхний блок с описанием */}
+      {/* Верхний блок */}
       <div style={{ marginBottom: "40px", maxWidth: "600px" }}>
-        <h2>This app is dedicated to support and updates related to Prosperity Pass ✨</h2>
+        <h2>
+          This app is dedicated to support and updates related to Prosperity Pass ✨
+        </h2>
         <p>
           A Celo ecosystem account supported by{" "}
-          <strong>CeloPG</strong> to recognize and reward contributions to Celo.  
+          <strong>CeloPG</strong> to recognize and reward contributions to Celo.
           <br />
           <a
             href="https://pass.celopg.eco/welcome"
@@ -96,7 +128,22 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Подключение кошелька */}
+      {/* Сеть */}
+      <div
+        style={{
+          marginBottom: "20px",
+          backgroundColor: "#1a1a1a",
+          padding: "10px 20px",
+          borderRadius: "10px",
+          fontSize: "16px",
+          color: "#FFD700",
+          border: "1px solid #FFD700",
+        }}
+      >
+        Network: {network}
+      </div>
+
+      {/* Кошелёк */}
       {!account ? (
         <button
           onClick={connectWallet}
