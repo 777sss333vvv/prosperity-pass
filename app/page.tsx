@@ -1,3 +1,13 @@
+import { useEffect } from "react";
+import { Fdk } from "@farcaster/frame-sdk";
+
+export default function HomePage() {
+  useEffect(() => {
+    const fdk = new Fdk();
+    fdk.actions.ready();   // ← Сообщаем Farcaster, что приложение готово
+  }, []);
+
+  // ...остальной твой код ниже
 "use client";
 
 import React, { useEffect, useState } from "react";
