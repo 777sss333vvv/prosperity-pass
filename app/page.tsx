@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect } from "react";
 import { Fdk } from "@farcaster/frame-sdk";
 
@@ -7,9 +9,7 @@ export default function HomePage() {
     fdk.actions.ready();   // ← Сообщаем Farcaster, что приложение готово
   }, []);
 
-  // ...остальной твой код ниже
-"use client";
-
+ // ...остальной твой код ниже
 import React, { useEffect, useState } from "react";
 import Web3 from "web3";
 
