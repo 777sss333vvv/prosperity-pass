@@ -1,126 +1,173 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Web3 from "web3";
+
+// Mini Apps SDK (Farcaster)
+import { sdk as miniappSdk } from "@farcaster/miniapp-sdk"; // установить: npm i @farcaster/miniapp-sdk
 
 export default function HomePage() {
   const [account, setAccount] = useState<string | null>(null);
-  const [network, setNetwork] = useState<string | null>(null);
+  const [network, setNetwork] = useState<string | null>("Not connected");
+  const [isMiniApp, setIsMiniApp] = useState<boolean>(false);
+  const [web3Instance, setWeb3Instance] = useState<Web3 | null>(null);
 
-  // Подключение кошелька
+  useEffect(() => {
+    // Детектируем Mini App
+    try {
+      if (miniappSdk && typeof miniappSdk.isInMiniApp === "function") {
+        setIsMiniApp(miniappSdk.isInMiniApp());
+      }
+    } catch (e) {
+      // SDK может не быть доступен — нормально
+      setIsMiniApp(false);
+    }
+
+    // Инициализация web3 (для MetaMask fallback)
+    if (typeof window !== "undefined" && (window as any).ethereum) {
+      const w3 = new Web3((window as any).ethereum);
+      setWeb3Instance(w3);
+
+      (window as any).ethereum
+        .request({ method: "eth_chainId" })
+        .then((chainId: string) => {
+          let name = "Unknown network";
+          if (chainId === "0xa4ec") name = "Celo Mainnet";
+          else if (chainId === "0xaef3") name = "Celo Alfajores";
+          setNetwork(name);
+        })
+        .catch(() => setNetwork("Unknown"));
+    }
+  }, []);
+
+  // ----- Connect: Farcaster mini-app or MetaMask -----
   const connectWallet = async () => {
-    if (typeof window === "undefined" || !(window as any).ethereum) {
-      alert("Please install MetaMask!");
+    if (isMiniApp) {
+      // Mini App: использовать SDK авторизации/контекст
+      try {
+        // Открывает диалог авторизации в Farcaster Mini App
+        await miniappSdk.actions.openAuth?.();
+        // Получаем context (если нужно)
+        const ctx = await miniappSdk.context?.get();
+        // ctx может содержать поля пользователя (fid/username/wallet)
+        if (ctx?.auth && ctx.auth.address) {
+          setAccount(ctx.auth.address);
+          setNetwork("Farcaster Wallet");
+          alert(`Connected via Farcaster: ${ctx.auth.address}`);
+        } else {
+          // если SDK не вернул адрес, сообщаем пользователю
+          alert("Connected to Mini App — please approve in-app wallet if requested.");
+        }
+      } catch (err) {
+        console.error("MiniApp connect error", err);
+        alert("Failed to connect inside Mini App.");
+      }
       return;
     }
 
+    // Fallback MetaMask
+    if (!web3Instance) return alert("MetaMask not detected. Please install MetaMask.");
     try {
-      const web3 = new Web3((window as any).ethereum);
-      await (window as any).ethereum.request({ method: "eth_requestAccounts" });
-      const accounts = await web3.eth.getAccounts();
-      const chainId = await web3.eth.getChainId();
-
+      const accounts = await (window as any).ethereum.request({ method: "eth_requestAccounts" });
       setAccount(accounts[0]);
-      setNetwork(chainId.toString());
-      alert("✅ Wallet connected successfully!");
-    } catch (error) {
-      console.error(error);
-      alert("❌ Failed to connect wallet.");
+      const chainId = await (window as any).ethereum.request({ method: "eth_chainId" });
+      setNetwork(chainId === "0xa4ec" ? "Celo Mainnet" : `Chain ${chainId}`);
+      alert(`Wallet connected: ${accounts[0]}`);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to connect wallet");
     }
   };
 
-  // Отправка доната
+  // ----- Отправка доната -----
+  // Логика: если открыты в Mini App -> вызываем miniappSdk.actions.sendToken (откроет форму Farcaster Wallet),
+  // иначе -> выполняем eth_sendTransaction через MetaMask
   const sendDonation = async (amount: number) => {
-    if (typeof window === "undefined" || !(window as any).ethereum) {
-      alert("Please install MetaMask!");
+    const recipient = "0x31DB887337778319761330f79E4699a3f9A5F6c3";
+
+    if (isMiniApp) {
+      // Farcaster Mini App path (вызов SDK action)
+      try {
+        // Формат token — CAIP-19 (опционально). Для нативной CELO можно передать undefined и только amount/recipient.
+        // Документация: https://miniapps.farcaster.xyz/docs/sdk/actions/send-token
+        await miniappSdk.actions.sendToken?.({
+          // token: "eip155:42220/slp/..."  // необязательно, можно опустить для нативного CELO
+          amount: amount.toString(),
+          recipient: recipient,
+        } as any); // типы могут отличаться в зависимости от версии SDK
+        alert(`Request sent to Farcaster Wallet to send ${amount} CELO`);
+      } catch (err) {
+        console.error("miniapp sendToken error", err);
+        alert("Failed to open Farcaster send dialog.");
+      }
       return;
     }
 
+    // MetaMask path
+    if (!web3Instance || !account) return alert("Please connect your wallet first (MetaMask).");
     try {
-      const web3 = new Web3((window as any).ethereum);
-      const accounts = await web3.eth.getAccounts();
-      const account = accounts[0];
-      const recipient = "0x31DB887337778319761330f79E4699a3f9A5F6c3";
+      // ручное преобразование в wei (точно)
+      const value = BigInt(Math.round(amount * 1e6) * 10n ** 12n).toString(); 
+      // Пояснение: Math.round(amount * 1e6) -> сохраняем 6 знаков точности, затем домножаем до 1e18.
+      // (это защищает от fp ошибок; альтернативно можно использовать bn.js или decimal.js в проде)
 
-      // Правильное вычисление CELO в wei
-      const value = BigInt(amount * 10 ** 18).toString();
-
-      await web3.eth.sendTransaction({
-        from: account,
-        to: recipient,
-        value: value,
+      await (window as any).ethereum.request({
+        method: "eth_sendTransaction",
+        params: [
+          {
+            from: account,
+            to: recipient,
+            value: value,
+          },
+        ],
       });
-
-      alert(`🎉 Thank you! You sent ${amount} CELO`);
-    } catch (error) {
-      console.error(error);
-      alert("❌ Transaction failed.");
+      alert(`Thank you — ${amount} CELO sent.`);
+    } catch (err) {
+      console.error(err);
+      alert("Transaction failed.");
     }
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-yellow-100 to-yellow-300 text-gray-900 flex flex-col items-center justify-center p-6">
-      <div className="bg-black/80 text-yellow-300 p-6 rounded-2xl shadow-2xl max-w-md w-full text-center">
-        <h1 className="text-2xl font-bold mb-4">
-          🌍 Prosperity Pass — Celo Mini App
-        </h1>
+    <div style={{ background: "#000", color: "#FFD700", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ width: 700, maxWidth: "95%", background: "#111", padding: 24, borderRadius: 12 }}>
+        <h2 style={{ textAlign: "center" }}>Prosperity Pass — Donate via Celo</h2>
 
-        <p className="text-sm mb-6 text-yellow-200">
-          This app is dedicated to support and updates related to Prosperity
-          Pass, a Celo ecosystem account supported by CeloPG to recognize and
-          reward contributions to Celo ✨
+        <p style={{ color: "#ffd", textAlign: "center" }}>
+          This app is dedicated to support and updates related to Prosperity Pass — a Celo ecosystem account supported by CeloPG.
           <br />
-          <a
-            href="https://pass.celopg.eco/welcome"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-yellow-400 transition"
-          >
-            https://pass.celopg.eco/welcome
-          </a>
+          <a href="https://pass.celopg.eco/welcome" target="_blank" rel="noreferrer" style={{ color: "#FFD700" }}>Visit Prosperity Pass</a>
         </p>
 
-        {!account ? (
-          <button
-            onClick={connectWallet}
-            className="bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 px-4 rounded-lg transition"
-          >
-            🔗 Connect Wallet
-          </button>
-        ) : (
-          <div>
-            <p className="text-xs text-yellow-200 mb-4 break-all">
-              Connected: {account}
-            </p>
-            <p className="text-xs mb-4">Network ID: {network}</p>
+        <div style={{ textAlign: "center", marginTop: 12 }}>
+          <div style={{ marginBottom: 12, color: "#FFD700" }}>Network: {network}</div>
 
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => sendDonation(0.1)}
-                className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded-xl transition"
-              >
-                💛 Donate 0.1 CELO
-              </button>
-              <button
-                onClick={() => sendDonation(1)}
-                className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded-xl transition"
-              >
-                💛 Donate 1 CELO
-              </button>
-              <button
-                onClick={() => sendDonation(5)}
-                className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded-xl transition"
-              >
-                💛 Donate 5 CELO
-              </button>
+          {!account ? (
+            <button onClick={connectWallet} style={btnStyle}>Connect Wallet</button>
+          ) : (
+            <div>
+              <div style={{ marginBottom: 12, color: "#fff" }}>Connected: {account}</div>
+              <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+                {[0.1, 1, 5].map((a) => (
+                  <button key={a} onClick={() => sendDonation(a)} style={btnStyle}>
+                    Donate {a} CELO
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-
-      <footer className="text-xs text-gray-800 mt-8">
-        Built with 💛 on Celo • Powered by Next.js
-      </footer>
-    </main>
+    </div>
   );
 }
+
+const btnStyle: React.CSSProperties = {
+  backgroundColor: "#FFD700",
+  color: "#000",
+  padding: "10px 18px",
+  borderRadius: 8,
+  border: "none",
+  cursor: "pointer",
+  fontWeight: "700",
+};
