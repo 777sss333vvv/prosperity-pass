@@ -1,82 +1,116 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import Web3 from "web3";
-import { Fdk } from "@farcaster/frame-sdk";
+import { FrameSDK } from "@farcaster/frame-sdk";
 
 export default function HomePage() {
+  const [sdk, setSdk] = useState<any | null>(null);
   const [account, setAccount] = useState<string | null>(null);
+  const [web3, setWeb3] = useState<Web3 | null>(null);
 
-  // Инициализация Farcaster Mini App SDK
+  // Init Farcaster Mini App SDK
   useEffect(() => {
-    const fdk = new Fdk();
-    fdk.actions.ready(); // ← Очень важно
+    const init = async () => {
+      const farcasterSdk = await FrameSDK.init();
+      setSdk(farcasterSdk);
+      farcasterSdk.actions.ready(); // Required for Mini App
+    };
+    init();
   }, []);
 
-  // Подключение MetaMask
-  async function connectWallet() {
-    if (typeof window !== "undefined" && (window as any).ethereum) {
-      try {
-        const accounts = await (window as any).ethereum.request({
-          method: "eth_requestAccounts",
-        });
-        setAccount(accounts[0]);
-      } catch (err) {
-        alert("Failed to connect wallet.");
-      }
-    } else {
-      alert("MetaMask not detected.");
-    }
-  }
-
-  // DONATE функция
-  async function donate(amountCelo: number) {
-    if (!account) {
-      alert("Please connect your wallet first.");
+  // Connect wallet
+  const connectWallet = async () => {
+    if (!(window as any).ethereum) {
+      alert("MetaMask / Celo Extension not found");
       return;
     }
 
     try {
-      const web3 = new Web3((window as any).ethereum);
+      const accounts = await (window as any).ethereum.request({
+        method: "eth_requestAccounts",
+      });
 
-      const amountWei = web3.utils.toWei(amountCelo.toString(), "ether");
+      const web3Instance = new Web3((window as any).ethereum);
+      setAccount(accounts[0]);
+      setWeb3(web3Instance);
+    } catch (err) {
+      alert("Wallet connection error");
+      console.error(err);
+    }
+  };
+
+  // Send CELO
+  const sendCelo = async (amount: number) => {
+    if (!web3 || !account) {
+      alert("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      const valueInWei = web3.utils.toWei(amount.toString(), "ether");
 
       await web3.eth.sendTransaction({
         from: account,
         to: "0x31DB887337778319761330f79E4699a3f9A5F6c3",
-        value: amountWei,
+        value: valueInWei,
       });
 
-      alert(`Thank you! You donated ${amountCelo} CELO`);
+      alert(`✓ Successfully sent ${amount} CELO`);
     } catch (err) {
-      alert("Transaction failed.");
+      console.error(err);
+      alert("Transaction failed");
     }
-  }
+  };
 
   return (
     <div
       style={{
-        background: "#f5f5dc",
-        minHeight: "100vh",
         padding: "20px",
-        textAlign: "center",
         fontFamily: "Arial, sans-serif",
+        maxWidth: 500,
+        margin: "0 auto",
+        textAlign: "center",
       }}
     >
-      <h1 style={{ color: "#000", fontSize: "22px", marginBottom: "20px" }}>
-        This app is dedicated to support and updates related to Prosperity Pass,
-        a Celo ecosystem account supported by CeloPG to recognize and reward
-        contributions to Celo ✨
+      <h1 style={{ fontSize: 26, marginBottom: 10 }}>
+        Prosperity Pass — CELO Mini App
       </h1>
+
+      {/* --- Added Prosperity Pass channel description --- */}
+      <p
+        style={{
+          fontSize: 15,
+          lineHeight: "22px",
+          marginBottom: 20,
+          opacity: 0.9,
+        }}
+      >
+        This channel is dedicated to support and updates related to Prosperity
+        Pass, a Celo ecosystem account supported by CeloPG to recognize and
+        reward contributions to Celo ✨
+        <br />
+        <a
+          href="https://pass.celopg.eco/welcome"
+          target="_blank"
+          style={{
+            color: "#35D07F",
+            textDecoration: "none",
+            fontWeight: "bold",
+          }}
+        >
+          pass.celopg.eco/welcome
+        </a>
+      </p>
+      {/* -------------------------------------------------- */}
 
       {!account ? (
         <button
           onClick={connectWallet}
           style={{
-            background: "#ffcc00",
-            padding: "12px 24px",
-            fontSize: "18px",
-            borderRadius: "8px",
+            padding: "14px 22px",
+            background: "#35D07F",
+            color: "white",
+            borderRadius: 14,
             border: "none",
             cursor: "pointer",
           }}
@@ -84,50 +118,52 @@ export default function HomePage() {
           Connect Wallet
         </button>
       ) : (
-        <p style={{ fontSize: "16px" }}>Connected: {account}</p>
+        <p style={{ marginBottom: 20, fontSize: 14 }}>
+          Connected wallet: <b>{account}</b>
+        </p>
       )}
 
-      <div style={{ marginTop: "30px" }}>
+      <div style={{ marginTop: 20 }}>
         <button
-          onClick={() => donate(0.1)}
+          onClick={() => sendCelo(0.1)}
           style={{
-            background: "#000",
-            color: "#fff",
-            padding: "12px 24px",
-            margin: "8px",
-            borderRadius: "8px",
+            padding: "12px 18px",
+            margin: "0 8px",
+            background: "#FFD700",
+            borderRadius: 10,
+            border: "none",
             cursor: "pointer",
           }}
         >
-          Donate 0.1 CELO
+          Send 0.1 CELO
         </button>
 
         <button
-          onClick={() => donate(1)}
+          onClick={() => sendCelo(1)}
           style={{
-            background: "#000",
-            color: "#fff",
-            padding: "12px 24px",
-            margin: "8px",
-            borderRadius: "8px",
+            padding: "12px 18px",
+            margin: "0 8px",
+            background: "#FFA500",
+            borderRadius: 10,
+            border: "none",
             cursor: "pointer",
           }}
         >
-          Donate 1 CELO
+          Send 1 CELO
         </button>
 
         <button
-          onClick={() => donate(5)}
+          onClick={() => sendCelo(5)}
           style={{
-            background: "#000",
-            color: "#fff",
-            padding: "12px 24px",
-            margin: "8px",
-            borderRadius: "8px",
+            padding: "12px 18px",
+            margin: "0 8px",
+            background: "#FF8C00",
+            borderRadius: 10,
+            border: "none",
             cursor: "pointer",
           }}
         >
-          Donate 5 CELO
+          Send 5 CELO
         </button>
       </div>
     </div>
