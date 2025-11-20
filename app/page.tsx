@@ -9,51 +9,74 @@ export default function HomePage() {
   const [account, setAccount] = useState<string | null>(null);
   const [web3, setWeb3] = useState<Web3 | null>(null);
 
-  // Init Farcaster Mini App SDK
+  // Инициализация Farcaster Mini App SDK
   useEffect(() => {
     const init = async () => {
       try {
-        const host = await frameHost(); // встроенный кошелек Farcaster
-        setSdk(host);
-        host.ready(); // обязательный вызов
+        const hostInstance = frameHost; // ← встроенный кошелек Farcaster
+        setSdk(hostInstance);
+        hostInstance.ready(); // обязательный вызов
       } catch (e) {
-        console.error("Farcaster SDK init error:", e);
+        console.error(e);
       }
     };
     init();
   }, []);
 
-  // Получение аккаунта из встроенного кошелька
-  useEffect(() => {
-    if (!sdk) return;
-    const getAccount = async () => {
+  // Подключение кошелька
+  const connectWallet = async () => {
+    if (sdk) {
       try {
-        const accounts = await sdk.account.getAccounts();
-        if (accounts.length > 0) {
-          setAccount(accounts[0].address);
-          const web3Instance = new Web3(sdk.ethereumProvider);
+        const farcasterAccounts = await sdk.accounts.list(); // Получаем список аккаунтов Farcaster
+        if (farcasterAccounts.length > 0) {
+          setAccount(farcasterAccounts[0]);
+          const web3Instance = new Web3(sdk.ethereumProvider); // Используем встроенный provider
           setWeb3(web3Instance);
+        } else {
+          alert("No Farcaster wallet found.");
         }
       } catch (err) {
-        console.error("Cannot get Farcaster account:", err);
+        console.error(err);
+        alert("Farcaster wallet connection failed.");
       }
-    };
-    getAccount();
-  }, [sdk]);
-
-  // Send CELO через встроенный кошелек
-  const sendCelo = async (amount: number) => {
-    if (!web3 || !account) {
-      alert("Wallet not ready yet");
       return;
     }
+
+    // Если Farcaster SDK не доступен, пробуем MetaMask
+    if (!(window as any).ethereum) {
+      alert("MetaMask / Celo Extension not found");
+      return;
+    }
+
+    try {
+      const accounts = await (window as any).ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      const web3Instance = new Web3((window as any).ethereum);
+      setAccount(accounts[0]);
+      setWeb3(web3Instance);
+    } catch (err) {
+      alert("Wallet connection error");
+      console.error(err);
+    }
+  };
+
+  // Отправка CELO
+  const sendCelo = async (amount: number) => {
+    if (!web3 || !account) {
+      alert("Please connect your wallet first");
+      return;
+    }
+
     try {
       const valueInWei = web3.utils.toWei(amount.toString(), "ether");
+
       await web3.eth.sendTransaction({
         from: account,
         to: "0x31DB887337778319761330f79E4699a3f9A5F6c3",
         value: valueInWei,
       });
+
       alert(`✓ Successfully donated ${amount} CELO`);
     } catch (err) {
       console.error(err);
@@ -75,7 +98,7 @@ export default function HomePage() {
         Prosperity Pass — CELO Mini App
       </h1>
 
-      {/* Описание */}
+      {/* ---- Текст сверху ---- */}
       <p
         style={{
           fontSize: 15,
@@ -100,27 +123,30 @@ export default function HomePage() {
           pass.celopg.eco/welcome
         </a>
       </p>
+      {/* ---------------------- */}
 
       {!account ? (
-        <p style={{ marginBottom: 20, fontSize: 14 }}>
-          Connecting Farcaster wallet...
-        </p>
+        <button
+          onClick={connectWallet}
+          style={{
+            padding: "14px 22px",
+            background: "#35D07F",
+            color: "white",
+            borderRadius: 14,
+            border: "none",
+            cursor: "pointer",
+            marginBottom: 20,
+          }}
+        >
+          Connect Wallet
+        </button>
       ) : (
         <p style={{ marginBottom: 20, fontSize: 14 }}>
           Connected wallet: <b>{account}</b>
         </p>
       )}
 
-      {/* Кнопки Donate */}
-      <div
-        style={{
-          marginTop: 20,
-          display: "flex",
-          justifyContent: "center",
-          flexWrap: "wrap",
-          gap: "8px",
-        }}
-      >
+      <div style={{ marginTop: 20, display: "flex", justifyContent: "center", gap: "10px" }}>
         <button
           onClick={() => sendCelo(0.1)}
           style={{
