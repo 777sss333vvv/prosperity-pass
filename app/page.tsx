@@ -1,7 +1,8 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import Web3 from "web3";
-import { FrameSDK } from "@farcaster/frame-sdk";
+import { frameHost } from "@farcaster/frame-sdk";
 
 export default function HomePage() {
   const [sdk, setSdk] = useState<any | null>(null);
@@ -11,9 +12,13 @@ export default function HomePage() {
   // Init Farcaster Mini App SDK
   useEffect(() => {
     const init = async () => {
-      const farcasterSdk = await FrameSDK.init();
-      setSdk(farcasterSdk);
-      farcasterSdk.actions.ready(); // Required for Mini App
+      try {
+        const host = await frameHost(); // ← новый SDK
+        setSdk(host);
+        host.ready(); // ← обязательный вызов
+      } catch (e) {
+        console.error("Farcaster SDK init error", e);
+      }
     };
     init();
   }, []);
@@ -76,7 +81,7 @@ export default function HomePage() {
         Prosperity Pass — CELO Mini App
       </h1>
 
-      {/* --- Added Prosperity Pass channel description --- */}
+      {/* Your text */}
       <p
         style={{
           fontSize: 15,
@@ -101,7 +106,6 @@ export default function HomePage() {
           pass.celopg.eco/welcome
         </a>
       </p>
-      {/* -------------------------------------------------- */}
 
       {!account ? (
         <button
