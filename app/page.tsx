@@ -13,11 +13,10 @@ export default function HomePage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const host = await frameHost(); // ← новый SDK
-        setSdk(host);
-        host.ready(); // ← обязательный вызов
+        setSdk(frameHost);       // ← новый SDK, без скобок
+        frameHost.ready();       // ← обязательный вызов ready
       } catch (e) {
-        console.error("Farcaster SDK init error", e);
+        console.error(e);
       }
     };
     init();
@@ -81,7 +80,7 @@ export default function HomePage() {
         Prosperity Pass — CELO Mini App
       </h1>
 
-      {/* Your text */}
+      {/*  ---- Your text added here ---- */}
       <p
         style={{
           fontSize: 15,
@@ -106,6 +105,7 @@ export default function HomePage() {
           pass.celopg.eco/welcome
         </a>
       </p>
+      {/* -------------------------------- */}
 
       {!account ? (
         <button
