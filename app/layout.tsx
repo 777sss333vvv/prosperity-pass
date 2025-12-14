@@ -11,11 +11,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Farcaster Mini App meta */}
+        {/* Farcaster Mini App */}
         <meta property="fc:app:id" content="prosperitypass.xyz" />
         <meta property="fc:app:version" content="1.0.0" />
 
-        {/* Open Graph / Preview */}
+        {/* 🔴 ЭТО КЛЮЧ */}
+        <meta
+          property="fc:miniapp"
+          content="https://prosperitypass.xyz/.well-known/farcaster.json"
+        />
+
+        {/* Preview */}
         <meta
           property="og:image"
           content="https://prosperitypass.xyz/icons/og.png"
