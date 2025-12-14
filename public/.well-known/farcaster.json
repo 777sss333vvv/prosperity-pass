@@ -1,17 +1,19 @@
 {
-  "domain": "prosperitypass.xyz",
-  "name": "Prosperity Pass Assistant",
-  "iconUrl": "https://prosperitypass.xyz/icons/app-icon.png",
-  "subtitle": "Your guide to Celo rewards",
-  "description": "A Mini App to explore Prosperity Pass, earn Celo rewards, and support creators.",
-  "primaryCategory": "finance",
-  "tags": ["celo", "rewards", "prosperity", "web3"],
-  "tagline": "Earn Celo rewards fast",
-  "buttonTitle": "Open Mini App",
-  "homeUrl": "https://prosperitypass.xyz",
-  "ogTitle": "Prosperity Pass",
-  "ogDescription": "Explore Celo rewards and support creators with Prosperity Pass.",
-  "ogImageUrl": "https://prosperitypass.xyz/icons/og.png",
-  "splashImageUrl": "https://prosperitypass.xyz/icons/splash.png",
-  "splashBackgroundColor": "#35D07F"
+  "frame": {
+    "domain": "prosperitypass.xyz",
+    "name": "Prosperity Pass Assistant",
+    "iconUrl": "https://prosperitypass.xyz/icons/app-icon.png",
+    "subtitle": "Your guide to Celo rewards",
+    "description": "A Mini App to explore Prosperity Pass, earn Celo rewards, and support creators.",
+    "primaryCategory": "finance",
+    "tags": ["celo", "rewards", "prosperity", "web3"],
+    "tagline": "Earn Celo rewards fast",
+    "buttonTitle": "Open Mini App",
+    "homeUrl": "https://prosperitypass.xyz",
+    "ogTitle": "Prosperity Pass",
+    "ogDescription": "Explore Celo rewards and support creators with Prosperity Pass.",
+    "ogImageUrl": "https://prosperitypass.xyz/icons/og.png",
+    "splashImageUrl": "https://prosperitypass.xyz/icons/splash.png",
+    "splashBackgroundColor": "#35D07F"
+  }
 }
