@@ -1,9 +1,19 @@
 import type { Metadata } from "next";
-import React from "react";
 
 export const metadata: Metadata = {
   title: "Prosperity Pass",
-  description: "Explore Celo rewards and support creators",
+  description: "Celo mini-app for micro-donations",
+  openGraph: {
+    title: "Prosperity Pass",
+    description: "Explore Celo rewards and support creators with Prosperity Pass.",
+    images: [
+      {
+        url: "/preview.png",
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -14,48 +24,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* ================= FARCASTER MINI APP ================= */}
-
-        {/* REQUIRED: tells Farcaster this is a Mini App */}
-        <meta property="fc:miniapp" content="v1" />
-
-        {/* App identity (must match manifest) */}
-        <meta
-          property="fc:miniapp:name"
-          content="Prosperity Pass Assistant"
-        />
-        <meta
-          property="fc:miniapp:icon"
-          content="https://prosperitypass.xyz/icons/app-icon.png"
-        />
-        <meta
-          property="fc:miniapp:url"
-          content="https://prosperitypass.xyz"
-        />
-
-        {/* ================= SOCIAL PREVIEW ================= */}
-
-        <meta property="og:title" content="Prosperity Pass" />
-        <meta
-          property="og:description"
-          content="Explore Celo rewards and support creators with Prosperity Pass."
-        />
-        <meta
-          property="og:image"
-          content="https://prosperitypass.xyz/icons/og.png"
-        />
-        <meta property="og:type" content="website" />
+        {/* REQUIRED Mini App embed marker */}
+        <meta property="fc:miniapp" content="true" />
 
         {/* Optional but recommended */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta
-          name="twitter:image"
-          content="https://prosperitypass.xyz/icons/og.png"
-        />
-
-        {/* ===================================================== */}
+        <meta property="fc:miniapp:version" content="1" />
+        <meta property="fc:miniapp:image" content="https://prosperitypass.xyz/preview.png" />
+        <meta property="fc:miniapp:button:title" content="Open Prosperity Pass" />
+        <meta property="fc:miniapp:button:action" content="launch" />
       </head>
-
       <body>{children}</body>
     </html>
   );
