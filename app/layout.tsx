@@ -1,25 +1,9 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import React from "react";
 
 export const metadata: Metadata = {
   title: "Prosperity Pass",
-  description: "Explore Celo rewards and support creators with Prosperity Pass.",
-  openGraph: {
-    title: "Prosperity Pass",
-    description:
-      "Explore Celo rewards and support creators with Prosperity Pass.",
-    url: "https://prosperitypass.xyz",
-    siteName: "Prosperity Pass",
-    images: [
-      {
-        url: "https://prosperitypass.xyz/icons/og.png",
-        width: 1200,
-        height: 630,
-        alt: "Prosperity Pass Mini App",
-      },
-    ],
-    type: "website",
-  },
+  description: "Explore Celo rewards and support creators",
 };
 
 export default function RootLayout({
@@ -30,13 +14,27 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* === Farcaster Mini App === */}
+        {/* ================= FARCASTER MINI APP ================= */}
+
+        {/* REQUIRED: tells Farcaster this is a Mini App */}
+        <meta property="fc:miniapp" content="v1" />
+
+        {/* App identity (must match manifest) */}
         <meta
-          property="fc:miniapp"
-          content="https://prosperitypass.xyz/.well-known/farcaster.json"
+          property="fc:miniapp:name"
+          content="Prosperity Pass Assistant"
+        />
+        <meta
+          property="fc:miniapp:icon"
+          content="https://prosperitypass.xyz/icons/app-icon.png"
+        />
+        <meta
+          property="fc:miniapp:url"
+          content="https://prosperitypass.xyz"
         />
 
-        {/* === OpenGraph (required for Embed Valid) === */}
+        {/* ================= SOCIAL PREVIEW ================= */}
+
         <meta property="og:title" content="Prosperity Pass" />
         <meta
           property="og:description"
@@ -48,12 +46,14 @@ export default function RootLayout({
         />
         <meta property="og:type" content="website" />
 
-        {/* Optional but safe */}
+        {/* Optional but recommended */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta
           name="twitter:image"
           content="https://prosperitypass.xyz/icons/og.png"
         />
+
+        {/* ===================================================== */}
       </head>
 
       <body>{children}</body>
