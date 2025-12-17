@@ -1,15 +1,3 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Prosperity Pass",
-  description: "Celo mini-app for rewards and micro-donations",
-  openGraph: {
-    title: "Prosperity Pass",
-    description: "Explore Celo rewards and support creators",
-    images: ["https://prosperitypass.xyz/preview.png"],
-  },
-};
-
 export default function RootLayout({
   children,
 }: {
@@ -18,22 +6,26 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* === Farcaster Mini App Embed === */}
+        {/* === REQUIRED Farcaster Mini App meta === */}
+
         <meta property="fc:miniapp" content="true" />
 
-        {/* ОБЯЗАТЕЛЬНО: версия (строго число) */}
+        {/* version MUST be a number */}
         <meta property="fc:miniapp:version" content="1" />
 
-        {/* ОБЯЗАТЕЛЬНО: imageUrl (absolute https URL) */}
+        {/* REQUIRED image */}
         <meta
-          property="fc:miniapp:image"
+          property="fc:miniapp:image_url"
           content="https://prosperitypass.xyz/preview.png"
         />
 
-        {/* aspect ratio (можно 1:1 или 1.91:1) */}
-        <meta property="fc:miniapp:aspect_ratio" content="1:1" />
+        {/* aspect ratio */}
+        <meta
+          property="fc:miniapp:aspect_ratio"
+          content="1:1"
+        />
 
-        {/* ОБЯЗАТЕЛЬНО: кнопка */}
+        {/* REQUIRED button */}
         <meta
           property="fc:miniapp:button:1"
           content="Open Mini App"
@@ -43,11 +35,13 @@ export default function RootLayout({
           content="launch"
         />
 
-        {/* OpenGraph fallback */}
+        {/* Fallback OG */}
         <meta
           property="og:image"
           content="https://prosperitypass.xyz/preview.png"
         />
+
+        <title>Prosperity Pass</title>
       </head>
 
       <body>{children}</body>
