@@ -25,19 +25,20 @@ export default function HomePage() {
 
   // -----------------------------
   // Connect Wallet
-  // Farcaster provider → fallback MetaMask
   // -----------------------------
   const connectWallet = async () => {
+    const host: any = miniAppHost;
+
     // Try Farcaster provider first
-    if (isMiniApp && miniAppHost.ethereumProvider) {
+    if (isMiniApp && host.ethereumProvider) {
       try {
-        const accs = (await miniAppHost.ethereumProvider.request({
+        const accs = (await host.ethereumProvider.request({
           method: "eth_requestAccounts",
         })) as string[];
 
         if (accs && accs.length > 0) {
           setAccount(accs[0]);
-          setWeb3(new Web3(miniAppHost.ethereumProvider as any));
+          setWeb3(new Web3(host.ethereumProvider));
           console.log("✓ Connected Farcaster wallet:", accs[0]);
           return;
         }
@@ -46,7 +47,7 @@ export default function HomePage() {
       }
     }
 
-    // Fallback → injected wallet (MetaMask)
+    // Fallback → MetaMask / injected wallet
     const eth = (window as any).ethereum;
     if (!eth) {
       alert("No wallet found");
@@ -74,7 +75,7 @@ export default function HomePage() {
 
       await web3.eth.sendTransaction({
         from: account,
-        to: "0x31DB887337778319761330f79E4699a3f9A5F6c3", // ← твой адрес
+        to: "0x31DB887337778319761330f79E4699a3f9A5F6c3", // твой адрес
         value,
       });
 
@@ -89,8 +90,9 @@ export default function HomePage() {
   // Open link (Warpcast-safe)
   // -----------------------------
   const openLink = (url: string) => {
-    if (isMiniApp && miniAppHost.actions?.openUrl) {
-      miniAppHost.actions.openUrl(url);
+    const host: any = miniAppHost;
+    if (isMiniApp && host.actions?.openUrl) {
+      host.actions.openUrl(url);
     } else {
       window.open(url, "_blank");
     }
