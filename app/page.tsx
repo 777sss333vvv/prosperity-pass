@@ -25,26 +25,28 @@ export default function HomePage() {
 
   // -----------------------------
   // Connect Wallet
-  // Farcaster → fallback MetaMask
+  // Farcaster provider → fallback MetaMask
   // -----------------------------
   const connectWallet = async () => {
-    // Try Farcaster wallet first
-    if (isMiniApp) {
+    // Try Farcaster provider first
+    if (isMiniApp && miniAppHost.ethereumProvider) {
       try {
-        const accounts = await miniAppHost.accounts.list();
-        if (accounts && accounts.length > 0) {
-          const acc = accounts[0];
-          setAccount(acc);
+        const accs = (await miniAppHost.ethereumProvider.request({
+          method: "eth_requestAccounts",
+        })) as string[];
+
+        if (accs && accs.length > 0) {
+          setAccount(accs[0]);
           setWeb3(new Web3(miniAppHost.ethereumProvider as any));
-          console.log("✓ Connected Farcaster wallet:", acc);
+          console.log("✓ Connected Farcaster wallet:", accs[0]);
           return;
         }
       } catch (e) {
-        console.error("Farcaster wallet error:", e);
+        console.error("Farcaster provider error:", e);
       }
     }
 
-    // Fallback → MetaMask / injected wallet
+    // Fallback → injected wallet (MetaMask)
     const eth = (window as any).ethereum;
     if (!eth) {
       alert("No wallet found");
@@ -191,7 +193,7 @@ export default function HomePage() {
         <p style={{ marginBottom: 20, wordBreak: "break-all" }}>
           Connected: <b>{account}</b>
           <br />
-          {isMiniApp ? "via Farcaster" : "via injected wallet"}
+          {isMiniApp ? "via Farcaster wallet" : "via injected wallet"}
         </p>
       )}
 
