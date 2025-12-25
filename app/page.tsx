@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Web3 from "web3";
-import { miniApp } from "@farcaster/miniapp-sdk";
+import { miniAppHost } from "@farcaster/miniapp-sdk";
 
 export default function HomePage() {
   const [account, setAccount] = useState<string | null>(null);
@@ -10,74 +10,73 @@ export default function HomePage() {
   const [isMiniApp, setIsMiniApp] = useState(false);
 
   // -----------------------------
-  // Init Farcaster Mini App SDK
+  // Init Farcaster Mini App
   // -----------------------------
   useEffect(() => {
     try {
-      miniApp.ready();
+      miniAppHost.ready();
       setIsMiniApp(true);
-      console.log("MiniApp SDK ready");
+      console.log("✓ Farcaster mini app ready");
     } catch (e) {
-      console.log("Not in Farcaster Mini App context");
+      console.log("Not in Farcaster mini app context");
+      setIsMiniApp(false);
     }
   }, []);
 
   // -----------------------------
   // Connect Wallet
-  // Farcaster wallet → identity
-  // MetaMask → tx signing fallback
+  // Farcaster → fallback MetaMask
   // -----------------------------
   const connectWallet = async () => {
-    // Try Farcaster Mini App wallet
+    // Try Farcaster wallet first
     if (isMiniApp) {
       try {
-        const user = await miniApp.getUser();
-        if (user?.walletAddress) {
-          setAccount(user.walletAddress);
-          alert("Connected Farcaster wallet:\n" + user.walletAddress);
+        const accounts = await miniAppHost.accounts.list();
+        if (accounts && accounts.length > 0) {
+          const acc = accounts[0];
+          setAccount(acc);
+          setWeb3(new Web3(miniAppHost.ethereumProvider as any));
+          console.log("✓ Connected Farcaster wallet:", acc);
           return;
         }
       } catch (e) {
-        console.error("MiniApp wallet error:", e);
+        console.error("Farcaster wallet error:", e);
       }
     }
 
     // Fallback → MetaMask / injected wallet
-    if (!(window as any).ethereum) {
-      alert("No wallet found. Install MetaMask or use Valora.");
+    const eth = (window as any).ethereum;
+    if (!eth) {
+      alert("No wallet found");
       return;
     }
 
     try {
-      const acc = await (window as any).ethereum.request({
-        method: "eth_requestAccounts",
-      });
-      setAccount(acc[0]);
-      setWeb3(new Web3((window as any).ethereum));
-    } catch {
+      const accs = await eth.request({ method: "eth_requestAccounts" });
+      setAccount(accs[0]);
+      setWeb3(new Web3(eth));
+      console.log("✓ Connected injected wallet:", accs[0]);
+    } catch (e) {
       alert("Wallet connection failed");
     }
   };
 
   // -----------------------------
-  // Send CELO (via MetaMask only)
+  // Send CELO
   // -----------------------------
   const sendCelo = async (amount: number) => {
-    if (!web3 || !account) {
-      alert("Connect MetaMask wallet for transactions");
-      return;
-    }
+    if (!web3 || !account) return alert("Connect wallet first");
 
     try {
-      const valueInWei = web3.utils.toWei(amount.toString(), "ether");
+      const value = web3.utils.toWei(amount.toString(), "ether");
 
       await web3.eth.sendTransaction({
         from: account,
-        to: "0x31DB887337778319761330f79E4699a3f9A5F6c3", // <-- твой CELO адрес
-        value: valueInWei,
+        to: "0x31DB887337778319761330f79E4699a3f9A5F6c3", // ← твой адрес
+        value,
       });
 
-      alert(`✓ Donated ${amount} CELO`);
+      alert(`✓ Sent ${amount} CELO`);
     } catch (e) {
       console.error(e);
       alert("Transaction failed");
@@ -85,12 +84,12 @@ export default function HomePage() {
   };
 
   // -----------------------------
-  // Open link (MiniApp safe)
+  // Open link (Warpcast-safe)
   // -----------------------------
   const openLink = (url: string) => {
-    try {
-      miniApp.actions.openUrl(url);
-    } catch {
+    if (isMiniApp && miniAppHost.actions?.openUrl) {
+      miniAppHost.actions.openUrl(url);
+    } else {
       window.open(url, "_blank");
     }
   };
@@ -108,14 +107,14 @@ export default function HomePage() {
         textAlign: "center",
       }}
     >
-      <h1 style={{ fontSize: 26, marginBottom: 12 }}>Prosperity Pass</h1>
+      <h1 style={{ fontSize: 26, marginBottom: 12 }}>
+        Prosperity Pass Mini App
+      </h1>
 
       <p style={{ fontSize: 15, opacity: 0.9, marginBottom: 25 }}>
-        This Mini App is dedicated to supporting and tracking activity
-        within the CELO ecosystem ✨
+        Support and explore the CELO ecosystem ✨
       </p>
 
-      {/* Follow */}
       <button
         onClick={() => openLink("https://warpcast.com/userbox")}
         style={{
@@ -133,7 +132,6 @@ export default function HomePage() {
         Follow @userbox
       </button>
 
-      {/* Recast */}
       <button
         onClick={() =>
           openLink(
@@ -155,7 +153,6 @@ export default function HomePage() {
         Recast Mini App
       </button>
 
-      {/* External site */}
       <button
         onClick={() => openLink("https://pass.celopg.eco/welcome")}
         style={{
@@ -171,10 +168,9 @@ export default function HomePage() {
           fontSize: 16,
         }}
       >
-        Open CELO Rewards Site →
+        Open CELO Rewards →
       </button>
 
-      {/* Wallet */}
       {!account ? (
         <button
           onClick={connectWallet}
@@ -192,12 +188,13 @@ export default function HomePage() {
           Connect Wallet
         </button>
       ) : (
-        <p style={{ marginBottom: 20 }}>
+        <p style={{ marginBottom: 20, wordBreak: "break-all" }}>
           Connected: <b>{account}</b>
+          <br />
+          {isMiniApp ? "via Farcaster" : "via injected wallet"}
         </p>
       )}
 
-      {/* Donations */}
       <div
         style={{
           marginTop: 10,
@@ -206,21 +203,41 @@ export default function HomePage() {
           gap: 12,
         }}
       >
-        {[0.1, 1, 5].map((amt) => (
-          <button
-            key={amt}
-            onClick={() => sendCelo(amt)}
-            style={{
-              padding: "12px 18px",
-              background: "#FFD700",
-              borderRadius: 10,
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            {amt} CELO
-          </button>
-        ))}
+        <button
+          onClick={() => sendCelo(0.1)}
+          style={{
+            padding: "12px 18px",
+            background: "#FFD700",
+            borderRadius: 10,
+            border: "none",
+          }}
+        >
+          0.1 CELO
+        </button>
+
+        <button
+          onClick={() => sendCelo(1)}
+          style={{
+            padding: "12px 18px",
+            background: "#FFA500",
+            borderRadius: 10,
+            border: "none",
+          }}
+        >
+          1 CELO
+        </button>
+
+        <button
+          onClick={() => sendCelo(5)}
+          style={{
+            padding: "12px 18px",
+            background: "#FF8C00",
+            borderRadius: 10,
+            border: "none",
+          }}
+        >
+          5 CELO
+        </button>
       </div>
     </div>
   );
