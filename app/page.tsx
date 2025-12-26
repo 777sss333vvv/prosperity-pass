@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Header from "@/components/Header";
+import Header from "@/components/header";
 import { initFarcaster, openExternal } from "@/lib/farcaster";
 
 export default function Page() {
@@ -12,11 +12,13 @@ export default function Page() {
 
   useEffect(() => {
     async function run() {
-      const ctx = await initFarcaster();
+      const ctx: any = await initFarcaster(); // 👈 фикс типизации
+
       if (ctx?.account) {
         setAddress(ctx.account.address || null);
         setFid(ctx.account.fid || null);
       }
+
       setReady(true);
     }
     run();
@@ -31,7 +33,9 @@ export default function Page() {
       {ready && (
         <>
           <div style={{ marginTop: 12 }}>
-            <div><b>FID:</b> {fid ?? "not in mini app"}</div>
+            <div>
+              <b>FID:</b> {fid ?? "not in mini app"}
+            </div>
             <div style={{ wordBreak: "break-all" }}>
               <b>Address:</b> {address ?? "not available"}
             </div>
