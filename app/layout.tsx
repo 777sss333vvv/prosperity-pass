@@ -1,20 +1,29 @@
 // app/layout.tsx
-import type { ReactNode } from "react";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Prosperity Pass Mini App",
-  description: "Celo Prosperity Pass on Farcaster",
+export const metadata: Metadata = {
+  title: "Prosperity Pass",
+  description: "Prosperity Pass Farcaster Mini App",
+  openGraph: {
+    title: "Prosperity Pass",
+    description: "Prosperity Pass Farcaster Mini App",
+    url: "https://prosperitypass.xyz",
+  },
+  other: {
+    "fc:miniapp": "true",
+    "fc:miniapp:name": "Prosperity Pass",
+    "fc:miniapp:url": "https://prosperitypass.xyz",
+  },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <head>
-        <meta property="fc:miniapp" content="vNext" />
-      </head>
-      <body style={{ margin: 0, fontFamily: "sans-serif" }}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
